@@ -132,7 +132,40 @@ where the angle brackets denote the mean (supposedly as $m\Delta t$ varies).
 (TODO internalize translation from tau to $m\Delta t$ in paper).
 
 ## Complex Environments 
-### Reflective Boundaries 
+### Reflective Boundaries
+Whenver an active particle contacts an obstacle, it slides along the obstacle 
+until its orientation points away from it. Numerically we can model this 
+process using reflective boundaries. 
+
+We will implement this by updating at each time stop the 
+particle position from $\mathbf{r}_{i-1} = [x_{i-1}, y_{i-1}]$ to 
+$\mathbf{r}_{i} = [x_i,y_u]$ by the following algorithm 
+1. Tentatively update the particle to $\bar{\mathbf{r}}$ as given by the above 
+   algorithm. 
+2. If $\bar{\mathbf{r}}$ is not in any obstacle, set $\hat{\mathbf{r}}_i = 
+   \mathbf{r}_i $ and move on to the next time step. 
+3. Otherwise (i.e., if $\hat{\mathbf{r}}_i$) is inside some obsstacle, 
+   1. Calculate the intersection point $\mathbf{p} = [x_p, y_p]$ between the 
+      boundary and the line from $\mathbf{r}_{i-1}$ to $\mathbf{r}_i$. 
+   2. Calculate the straight line $l$ tangent to the obstacle at $\mathbf{p}$ 
+      with tangent unit vector $\hat{\mathbf{t}}$ and normal unit vector 
+      $\hat{\mathbf{n}}$ outgoing from the obstacle. 
+   3. Calculate $\mathbf{r}_i$ by reflecting $\bar{\mathbf{r}}_i$ on $l$ 
+      so that 
+      $$
+      \mathbf{r}_i = \bar{\mathbf{r}}_i - 2[(\hat{\mathbf{r}_i})\cdot \bar{
+      \mathbf{n}}] \bar{\mathbf{n}}
+      $$
+      where $(\bar{\mathbf{r}}_i - \mathbf{p}) \cdot \hat{\mathbf{n}}$.
+
+For this method to work, the average spatial increment of a simulated 
+trajectory is small compared to the characteristic length scale of the 
+obstacles (TODO what does this mean?). This way we can consider one boundary
+at a time and also approximate the boundary with its tangent straight line. 
+If the time step $\Delta t$ is too large, this approach can lead to numerical 
+instability around sharp corners in the boundaries, where multiple reflections 
+may take place, or an obstacle wall that is too thin, where the particle's 
+trajectory could unnaturally pass through the obstacle. 
 
 
 
