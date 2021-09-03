@@ -24,7 +24,7 @@ class World:
     def normal_vec(self, x, y=None):
         grad_bdy = grad(self.bdy)
         sol = None 
-        if y: 
+        if y is not None:
             sol = grad_bdy((float(x), float(y)))
         else:
             x_float = []
@@ -35,6 +35,7 @@ class World:
 
         norm = linalg.norm(sol)
         return np.divide(sol, norm)
+
 
 
 ##################### TEST SUITE #####################
