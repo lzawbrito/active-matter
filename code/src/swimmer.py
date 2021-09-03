@@ -1,7 +1,16 @@
 from random import gauss
+from autograd.core import deprecated_defgrad
 import numpy as np
 from numpy.linalg import norm
-from mathutils import grad
+
+# TODO 
+"""
+- Right now initialization of SimpleSwimmer solves without accounting for 
+  other swimmers that will be in the handler. Think about proper way to handle 
+  this.
+- Add option to turn off noise term
+- Work out on paper what the reflections for a box then compare with sim
+"""
 
 class SimpleSwimmer:
     def __init__(self,
@@ -12,27 +21,70 @@ class SimpleSwimmer:
                    y_0 = 0,
                    v_0 = 0,
                    phi_0 = 0,
-                   omega = 0):
+                   omega = 0,
+                   brown=True):
         """
         Simple microswimmer object from Volpe, et al.
         """
+
+        # Unique identifier for handling purposes
         self.id = id 
+
+        # World, see src/world
         self.world = world 
+
+        # Extended body's radius 
         self.r = r
+
+        # Positions
         self.x = x_0
         self.y = y_0
+        self.next_x = x_0
+        self.next_y = y_0
+
+        # Velocity 
         self.v = v_0 
-        self.phi = phi_0
         self.xdot = v_0 * np.cos(phi_0)
         self.ydot = v_0 * np.sin(phi_0)
+
+        # Angular orientation of particle, angular velocity 
+        self.phi = phi_0
         self.omega = omega
+
+        # Diffusion coefficients
         self.d_t = (world.k_B * world.temp) / \
                         (6 * world.viscosity * self.r)
         self.d_r = (world.k_B * world.temp) / \
                     (8 * world.viscosity * (self.r ** 3))
 
+        self.brown = int(brown)
+
+        # Solve for next time step upon initialization to determine next_x, 
+        # next_y
+        self.solve()
+
+    def get_position(self):
+        """
+        Return x, y coordinates of swimmer.
+        """
+        return self.x, self.y
+
+    def delta_xy(self):
+        """
+        Computes change in position between current timestep and next. 
+        """
+        return self.next_x - self.x, self.next_y - self.next_y
 
     def step(self):
+        """
+        Update x and y coordinates and solve for next timestep of differential
+        equation.
+        """
+        self.x = self.next_x
+        self.y = self.next_y
+        self.solve()
+
+    def solve(self):
         """
         Solve for next timestep of differential equation.
         """
@@ -46,13 +98,13 @@ class SimpleSwimmer:
         # Solve finite difference equations
         phi_i = self.phi + self.omega * dt + np.sqrt(2 * self.d_r * dt) * wphi_i
         x_i = self.x + v * np.cos(self.phi) * dt \
-              + np.sqrt(2 * self.d_t * dt) * wx_i
+              + self.brown * np.sqrt(2 * self.d_t * dt) * wx_i
         y_i = self.y + v * np.cos(self.phi) * dt \
-              + np.sqrt(2 * self.d_t * dt) * wy_i
+              + self.brown * np.sqrt(2 * self.d_t * dt) * wy_i
         
         self.phi = phi_i
-        self.x = x_i
-        self.y = y_i
+        self.next_x = x_i
+        self.next_y = y_i
 
 
 class Swimmer:

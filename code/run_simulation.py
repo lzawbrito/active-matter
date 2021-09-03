@@ -1,7 +1,9 @@
 from src.swimmer import SimpleSwimmer 
 from src.world import World 
-import numpy as np
+import matplotlib.pyplot as plt
 import random 
+import numpy as np 
+
 
 """
 TODO 
@@ -12,20 +14,24 @@ TODO
 DT = 0.01
 DURATION = 2
 
-world = World(DT)
-handler = {}
-for i in range(0, 3):
-    handler[str(i)] = SimpleSwimmer(str(i),
-                              world, 
-                              x_0 = 10 * random.random(), 
-                              y_0 = 10 * random.random())
+# world = World(DT)
+# handler = {}
+# for i in range(0, 3):
+#     handler[str(i)] = SimpleSwimmer(str(i),
+#                               world, 
+#                               x_0 = 10 * random.random(), 
+#                               y_0 = 10 * random.random())
 
 
-for i in range(0, int(DURATION / DT)):
-    positions = []
-    for s in handler.keys():
-        handler[s].step()
-        positions.append((handler[s].x, handler[s].y))
+# for i in range(0, int(DURATION / DT)):
+#     positions = []
+#     for s in handler.keys():
+#         handler[s].step()
+#         positions.append((handler[s].x, handler[s].y))
+
+#     print(positions)
+
+
 
 
 
