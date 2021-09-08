@@ -1,47 +1,91 @@
 from math import isclose
 from random import random
-import numpy as np
+import autograd.numpy as np
+import autograd 
+from autograd import grad 
 
 # TODO 
 """
-- test level_curve_intersection, write function signature
+- if two intersections chose one closest to r1. Figure out how to do that. 
+  maybe something with the random point that is chosen. Right now it 
+  converges on a random intersection. 
+- tolerance is a bit iffy. how quickly the algorithm converges depends 
+  on the slope of the function near the level curve. so it is hard to 
+  predict how close the algorithm's output will be to the actual intersection 
+  point. Ideally want greater slopes near the level curve.
+- figure out better way to determine whether there is an intersection?
 """
 
-def level_curve_intersection(f, level_curve, x_bounds, level_curve_value):
-    x = random() * (x_bounds[1] - x_bounds[0]) + x_bounds[0]
-    while not isclose(level_curve(x, f(x)), level_curve_value, abs_tol=1e-8):
-        print(x, f(x))
-        if level_curve(x, f(x)) > level_curve_value:
-            x_bounds = (x_bounds[0], x)
-        elif level_curve(x, f(x)) < level_curve_value:
-            x_bounds = (x, x_bounds[1])
-        else:
-            break 
-
-        x = random() * (x_bounds[1] - x_bounds[0]) + x_bounds[0]
-    return x, f(x)
-
-
-def line_intersection(line1, line2):
+def level_curve_intersection(r1, r2, bdy, potential, tol=1e-5, max_iter=10000): 
     """
-    From https://stackoverflow.com/questions/20677795/how-do-i-compute-the-intersection-point-of-two-lines
+    Determines the intersection of the line between r1 and r2 and the given 
+    level curve. 
     """
-    xdiff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
-    ydiff = (line1[0][1] - line1[1][1], line2[0][1] - line2[1][1])
+    r1, r2 = np.array(r1), np.array(r2)
+    dr = np.subtract(r1, r2)
+    x = np.add(random() * dr, r1)
+    grad_bdy = grad(bdy)
 
-    def det(a, b):
-        return a[0] * b[1] - a[1] * b[0]
-
-    div = det(xdiff, ydiff)
-    if div == 0:
-       raise Exception('lines do not intersect')
-
-    d = (det(*line1), det(*line2))
-    x = det(d, xdiff) / div
-    y = det(d, ydiff) / div
-    return x, y
-
+    i = 0
+    while not isclose(bdy(x), potential, abs_tol=tol) and i <= max_iter:
+        normal = grad_bdy((float(x[0]), float(x[1])))
+        dr_orientation = np.sign(np.dot(dr, normal))
+        if bdy(x) < potential: 
+            if dr_orientation > 0:
+                r1 = x 
+            else:  
+                r2 = x 
+        elif bdy(x) > potential: 
+            if dr_orientation > 0: 
+                r2 = x 
+            else:  
+                r1 = x 
+        else:      
+            return x 
+        dr = np.subtract(r1, r2)
+        x = np.add(random() * dr, r1)
+        grad_bdy = grad(bdy)
+        i += 1
+    if i <= max_iter:
+        return x 
+    else:
+        return None 
 
 if __name__ == '__main__':
-    print(line_intersection(((1, 1), (4, 3)), ((4, 1), (3, 3))))
-    level_curve_intersection(lambda x: x + 1, lambda x, y: np.sqrt(x ** 2 + y ** 2), [1, 2], 3)
+    assert isclose(level_curve_intersection((1, 2), (2, 3),
+                                            lambda x: np.sqrt(x[0] ** 2 + x[1] ** 2),
+                                            3)[0],
+                                            -0.5 + np.sqrt(68) / 4,
+                                            abs_tol=1e-8) and \
+           isclose(level_curve_intersection((1, 2), (2, 3),
+                                            lambda x: np.sqrt(x[0] ** 2 + x[1] ** 2),
+                                            3)[1],
+                                            0.5 + np.sqrt(68) / 4,
+                                            abs_tol=1e-8)
+
+    assert isclose(level_curve_intersection((-2, -1), (-3, -2),
+                                            lambda x: np.sqrt(x[0] ** 2 + x[1] ** 2),
+                                            3)[0],
+                                            -0.5 - np.sqrt(68) / 4,
+                                            abs_tol=1e-8) and \
+           isclose(level_curve_intersection((-2, -1), (-3, -2),
+                                            lambda x: np.sqrt(x[0] ** 2 + x[1] ** 2),
+                                            3)[1],
+                                            0.5 - np.sqrt(68) / 4,
+                                            abs_tol=1e-8)
+
+    def ripple(x): 
+        return np.exp(- 100 * (np.sqrt(x[0] ** 2 + x[1] ** 2) - 3) ** 2)
+
+    assert isclose(level_curve_intersection((-2, -1), (-3, -2),
+                                            ripple,
+                                            1)[0],
+                                            - 0.5 - np.sqrt(68) / 4,
+                                            abs_tol=1e-5) and \
+           isclose(level_curve_intersection((-2, -1), (-3, -2),
+                                            ripple,
+                                            1)[1],
+                                            0.5 - np.sqrt(68) / 4,
+                                            abs_tol=1e-5)
+
+    print(level_curve_intersection)

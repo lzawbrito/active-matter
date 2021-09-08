@@ -6,7 +6,7 @@ from math import isclose
 
 
 class World:
-    def __init__(self, dt, bdy=lambda x: 0, bdy_constant=1, temp=300, k_B=k, viscosity=1):
+    def __init__(self, dt, bdy=None, bdy_pot=1, temp=300, k_B=k, viscosity=1):
         """`
         World object: this is where one defines constants, 
         timestep sizes, etc.
@@ -18,10 +18,13 @@ class World:
         self.temp = temp
         self.dt = dt
         self.bdy = bdy 
+        self.bdy_pot = bdy_pot
         self.k_B = k_B
         self.viscosity = viscosity
 
     def normal_vec(self, x, y=None):
+        if self.bdy is None: 
+            return None
         grad_bdy = grad(self.bdy)
         sol = None 
         if y is not None:
@@ -34,7 +37,7 @@ class World:
             # TODO make sure it points inward...?
 
         norm = linalg.norm(sol)
-        return np.divide(sol, norm)
+        return -1 * np.divide(sol, norm)
 
 
 
