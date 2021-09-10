@@ -6,11 +6,11 @@ from os.path import join
 from src.plot import plot_swimmer_trajectory
 
 DT = 0.01
-DURATION = 1000
+DURATION = 100
 OUTPUT_DIR = 'plots'
 
 world = World(DT)
-swimmer = SimpleSwimmer(0, world)
+swimmer = SimpleSwimmer(0, world, v_0=10e-6)
 
 positions = []
 for i in range(0, int(DURATION / DT)):
