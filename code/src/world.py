@@ -6,7 +6,7 @@ from math import isclose
 
 
 class World:
-    def __init__(self, dt, bdy=None, bdy_pot=1, temp=300, k_B=k, viscosity=1):
+    def __init__(self, dt, bdy=None, bdy_pot=1, temp=310, k_B=k, viscosity=1e-3):
         """`
         World object: this is where one defines constants, 
         timestep sizes, etc.
@@ -38,6 +38,12 @@ class World:
 
         norm = linalg.norm(sol)
         return -1 * np.divide(sol, norm)
+    
+    def is_outside_bdy(self, r):
+        return self.bdy(r) > self.bdy_pot
+        
+    def is_inside_bdy(self, r):
+        return self.bdy(r) < self.bdy_pot
 
 
 

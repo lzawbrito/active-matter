@@ -1,0 +1,19 @@
+WORLD CONDITIONS: 
+temperature				310
+k_B						1.380649e-23
+viscosity				0.001
+boundary				None
+
+SWIMMER PARAMETERS: 
+R						1e-09 
+v						0
+omega					0
+trans. diffusion		True
+rot. diffusion			True
+trans. diffusion dist.	normal
+rot. diffusion dist.	uniform_angle
+
+SIMULATION PARAMETERS: 
+dt						0.01 
+duration				1000.0
+              

@@ -1,3 +1,4 @@
+from matplotlib.pyplot import xlim
 from src.swimmer import SimpleSwimmer
 from src.world import World 
 import numpy as np 
@@ -11,20 +12,30 @@ from src.boundaries import circular_bdy, rectangular_bdy
 # are not placing it outside. 
 
 
-DURATION = 30
-DT = 0.1
+DURATION = 10
+DT = 0.0001
+R = 20e-6
 
-# world = World(0.01, bdy=rectangular_bdy, bdy_pot=1e-6)
-# swimmer = SimpleSwimmer(0, world, x_0=0.9e-6, y_0=0.96e-6, v_0=1e-7, phi_0=np.pi/3, brown=False)
 
-world = World(0.01, bdy=circular)
+world = World(0.01, bdy=circular_bdy, bdy_pot=R)
+swimmer = SimpleSwimmer(0, world, y_0=0.5e-9, phi_0=np.pi / 3, brown=True, v_0=10e-6)
 
+print('computing circular boundary trajectory')
 positions = []
 for i in range(0, int(DURATION / DT)):
     positions.append(swimmer.get_position())
     swimmer.step()
 
-plot_swimmer_trajectory(positions, "plots/rectangular_bdy")
+plot_swimmer_trajectory(positions, "plots/circular_bdy", xlim=(-R, R), ylim=(-R, R))
 
-x, y = np.transpose(positions)
+world = World(0.01, bdy=rectangular_bdy, bdy_pot=R)
+swimmer = SimpleSwimmer(0, world, y_0=0.5e-9, phi_0=np.pi / 3, brown=True, v_0=10e-6)
 
+print('computing rectangular boundary trajectory')
+positions = []
+for i in range(0, int(DURATION / DT)):
+    positions.append(swimmer.get_position())
+    swimmer.step()
+
+plot_swimmer_trajectory(positions, "plots/rectangular_bdy", xlim=(-R - R / 10, 
+                        R + R / 10), ylim=(-R - R / 10, R + R / 10))

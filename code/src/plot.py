@@ -48,7 +48,15 @@ def make_segments(x, y):
     segments = np.concatenate([points[:-1], points[1:]], axis=1)
     return segments
 
-def plot_swimmer_trajectory(positions, output_dir, title="Swimmer Trajectory", t_start='0', t_stop='t_stop'):
+def plot_swimmer_trajectory(positions, 
+                            output_dir, 
+                            swimmer, 
+                            world, 
+                            title="Swimmer Trajectory", 
+                            t_start='0', 
+                            t_stop='t_stop', 
+                            xlim=None, 
+                            ylim=None):
     fig, ax = plt.subplots()
     path = mpath.Path(positions)
     verts = path.vertices
@@ -64,4 +72,35 @@ def plot_swimmer_trajectory(positions, output_dir, title="Swimmer Trajectory", t
     axcb = fig.colorbar(lc)
     axcb.set_label('Line Number')
 
+    if xlim is not None: 
+        ax.set_xlim(xlim[0], xlim[1])
+    if ylim is not None: 
+        ax.set_ylim(ylim[0], ylim[1])
+        
     plt.savefig(output_dir)
+    f = open(output_dir + '.txt', 'w')
+
+    # TODO find a way to output boundary 
+
+    bdy_name = world.bdy if world.bdy is not None else 'None'
+    content = f"""WORLD CONDITIONS: 
+temperature\t\t\t\t{world.temp}
+k_B\t\t\t\t\t\t{world.k_B}
+viscosity\t\t\t\t{world.viscosity}
+boundary\t\t\t\t{bdy_name}
+
+SWIMMER PARAMETERS: 
+R\t\t\t\t\t\t{swimmer.r} 
+v\t\t\t\t\t\t{swimmer.v}
+omega\t\t\t\t\t{swimmer.omega}
+trans. diffusion\t\t{bool(swimmer.trans_diff)}
+rot. diffusion\t\t\t{bool(swimmer.rot_diff)}
+trans. diffusion dist.\t{swimmer.trans_dist.__name__}
+rot. diffusion dist.\t{swimmer.rot_dist.__name__}
+
+SIMULATION PARAMETERS: 
+dt\t\t\t\t\t\t{world.dt} 
+duration\t\t\t\t{len(x) * world.dt}
+              """
+    f.write(content)
+    f.close()
