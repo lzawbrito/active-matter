@@ -45,9 +45,16 @@ class World:
     def is_inside_bdy(self, r):
         return self.bdy(r) < self.bdy_pot
 
+    def params(self):
+        bdy_name = self.bdy if self.bdy is not None else 'None'
+        return f"WORLD CONDITIONS:\n" \
+                + f"temperature\t\t\t{self.temp}\n" \
+                + f"k_B\t\t\t\t{self.k_B}\n" \
+                + f"viscosity\t\t\t{self.viscosity}\n" \
+                + f"boundary\t\t\t{bdy_name}\n" \
+                + f"dt\t\t\t\t{self.dt}\n" 
 
 
-##################### TEST SUITE #####################
 if __name__ == '__main__':
     world = World(0.1, lambda x: x[0] ** 2 + x[1] ** 2)
     # print(world.normal_vec((1, 1)))

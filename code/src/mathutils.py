@@ -16,7 +16,32 @@ from autograd import grad
 - figure out better way to determine whether there is an intersection?
 """
 
-def level_curve_intersection(r1, r2, bdy, potential, tol=1e-5, max_iter=10000): 
+
+def msd(x, y, dt, delta_t):
+    """
+    Calculates mean squared displacement (MSD) of the given positions x, y using 
+    time intervals delta_t. Because time steps are discretized, delta_t rounds 
+    to nearest integer.
+    """
+    interval = int(round(delta_t / dt))
+    assert len(x) == len(y)
+
+    i = 0
+    sum = 0
+    while i + interval < len(x):
+        r_1 = np.array((x[i], y[i]))
+        r_2 = np.array((x[i + interval], y[i + interval]))
+        dr = np.subtract(r_2, r_1)
+        norm_sq = np.linalg.norm(dr) ** 2
+        sum += norm_sq
+        i += 1
+    try:
+        return sum / i
+    except ZeroDivisionError:
+        print('delta_t too large.')
+    
+
+def level_curve_intersection(r1, r2, bdy, potential, tol=1e-10, max_iter=100): 
     """
     Determines the intersection of the line between r1 and r2 and the given 
     level curve. 
@@ -51,7 +76,11 @@ def level_curve_intersection(r1, r2, bdy, potential, tol=1e-5, max_iter=10000):
     else:
         return None 
 
+
 if __name__ == '__main__':
+    assert isclose(msd([1, 2, 3], [0, 0, 0], 0.1, 0.1), 1, abs_tol=1e-8)
+    assert isclose(msd([1, 2, 3, 4], [0, 0, 0, 0], 0.1, 0.2), 4, abs_tol=1e-8)
+
     assert isclose(level_curve_intersection((1, 2), (2, 3),
                                             lambda x: np.sqrt(x[0] ** 2 + x[1] ** 2),
                                             3)[0],
@@ -88,4 +117,3 @@ if __name__ == '__main__':
                                             0.5 - np.sqrt(68) / 4,
                                             abs_tol=1e-5)
 
-    print(level_curve_intersection)

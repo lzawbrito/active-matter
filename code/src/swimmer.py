@@ -32,7 +32,7 @@ class SimpleSwimmer:
     def __init__(self,
                    id, 
                    world, 
-                   r = 1e-9,
+                   r = 0.5e-6,
                    x_0 = 0,
                    y_0 = 0,
                    v_0 = 0,
@@ -78,10 +78,21 @@ class SimpleSwimmer:
         self.rot_diff = int(rot_diff)
         self.trans_dist = trans_dist 
         self.rot_dist = rot_dist
+        
+        # Peclet number 
+        self.pe = self.v / (self.d_r * self.r)
 
+        self.t = 0
         # Solve for next time step upon initialization to determine next_x, 
         # next_y
         self.solve()
+
+    def get_t(self):
+        """
+        Returns current time of swimmer.
+        """
+        return self.t
+
 
     def get_position(self):
         """
@@ -102,6 +113,7 @@ class SimpleSwimmer:
         """
         self.x = self.next_x
         self.y = self.next_y
+        self.t += self.world.dt
         self.solve()
 
     def solve(self):
@@ -144,4 +156,18 @@ class SimpleSwimmer:
                                     * normal)
                 current_r = bdy_collision_position 
             self.next_x, self.next_y = tried_r
+
+    def params(self):
+        return f"SWIMMER PARAMETERS:\n" \
+            + f"R\t\t\t\t{self.r}\n" \
+            + f"v\t\t\t\t{self.v}\n" \
+            + f"omega\t\t\t\t{self.omega}\n" \
+            + f"trans. diffusion\t\t{bool(self.trans_diff)}\n" \
+            + f"rot. diffusion\t\t\t{bool(self.rot_diff)}\n" \
+            + f"trans. diffusion dist.\t\t{self.trans_dist.__name__}\n" \
+            + f"rot. diffusion dist.\t\t{self.rot_dist.__name__}\n" \
+            + f"D_T\t\t\t\t{self.d_t}\n" \
+            + f"D_R\t\t\t\t{self.d_r}\n" \
+            + f"Peclet number\t\t\t{self.pe}\n" \
+            + f"duration\t\t\t{self.t}\n" 
 

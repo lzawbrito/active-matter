@@ -17,7 +17,7 @@ DT = 0.0001
 R = 20e-6
 
 
-world = World(0.01, bdy=circular_bdy, bdy_pot=R)
+world = World(DT, bdy=circular_bdy, bdy_pot=R)
 swimmer = SimpleSwimmer(0, world, y_0=0.5e-9, phi_0=np.pi / 3, brown=True, v_0=10e-6)
 
 print('computing circular boundary trajectory')

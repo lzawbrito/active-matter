@@ -1,0 +1,19 @@
+WORLD CONDITIONS:
+temperature			310
+k_B				1.380649e-23
+viscosity			0.001
+boundary			None
+dt				0.0001
+
+SWIMMER PARAMETERS:
+R				5e-07
+v				1e-05
+omega				0
+trans. diffusion		True
+rot. diffusion			True
+trans. diffusion dist.		normal
+rot. diffusion dist.		uniform_angle
+D_T				1.4266706333333333e-12
+D_R				4.280011900000001
+Peclet number			4.672884203896722
+duration			10.000099999990033
