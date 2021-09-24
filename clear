@@ -1,2 +1,2 @@
 #!/bin/bash
-rm -R ./data/sims/*
+find ./data/sims/* -maxdepth 2 -type f -delete

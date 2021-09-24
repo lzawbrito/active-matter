@@ -1,7 +1,6 @@
 from src.mathutils import msd
 import numpy as np 
 import matplotlib.pyplot as plt 
-from src.plot import plot_swimmer_trajectory
 import argparse
 
 
