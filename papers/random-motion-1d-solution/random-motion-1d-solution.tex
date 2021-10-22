@@ -1,0 +1,99 @@
+\documentclass{article}
+
+\input{~/Documents/school/tex-templates/pset-template.tex}
+\lhead{Lucas Brito}
+\chead{}
+\rhead{One-Dimensional Probability Distribution for Random Walker Position}
+
+\title{One-Dimensional Probability Distribution for Random Walker Position}
+\author{Lucas Brito}
+
+
+\begin{document}
+\maketitle
+
+Our model is as follows: say the probability of finding the walker at position
+$ x_0 $ at a time $ t_0 +\tau $ $ P(x_0, t_0 +\tau) $. There are three possibilities 
+for the walker's position at $ t = t_0 $: the walker was positioned some small 
+distance $ \delta $ to the left (then moved to the right), the walker was 
+positioned some small distance $ \delta $ to the right (then moved to the left), 
+or the walker did not move. With the probability that the walker moves to the 
+right being $ p_r $ and the probability the walker moves to the left $ p_\ell $, 
+one can set up the equation 
+\begin{equation*}
+	P(x_0, t_0 + \tau) = p_\ell \cdot P(x_0 + \delta, t_0)
+	 + (1-p_r - p_\ell)P(x_0, t_0) + p_r \cdot P(x_0 - \delta, t_0) 
+\end{equation*}
+
+We will use a multivariable Taylor expansion about $ x_0, t_0 $. On the left 
+hand side, we will naturally evaluate the expansion at $( x_0, t_0+\tau) $; 
+all derivatives with respect to $ x $ evaluate to zero for they are in powers 
+of $ (x_0 - x_0) $. The left hand side is then 
+\begin{align*}
+	P(x_0, t_0) + \pdv{P}{t}\evalat_{t=t_0}^{} (t_0 - t_0 + \tau) 
+	&+ \frac{1}{2}\pdv[2]{P}{t}\evalat_{t=t_0}^{} (t_0 - t_0 + \tau)^2 + \cdots \\
+	&= 
+	P(x_0, t_0) + \pdv{P}{t}\evalat_{t=t_0}^{} \tau 
+	+ \frac{1}{2}\pdv[2]{P}{t}\evalat_{t=t_0}^{} \tau^2 + \cdots
+\end{align*}
+
+The right hand side, evaluated similarly, is 
+\begin{align*}
+	&p_\ell \qty[ P(x_0, t_0) + \pdv{P}{x}\evalat_{x=x_0}^{} \delta 
+		+ \frac{1}{2}\pdv[2]{P}{x} \evalat_{x_0}^{}\delta^2 + \cdots ] \\
+	& + (1-p_r - p_\ell)
+	\qty[ P(x_0, t_0) + \pdv{P}{x}\evalat_{x=x_0}^{} (x_0-x_0)+
+	\pdv[2]{P}{x}\evalat_{x=x_0}^{} (x_0- x_0)^2 + \cdots  ]\\
+	& + p_r \qty[ P(x_0, t_0) - \pdv{P}{x}\evalat_{x=x_0}^{} \delta 
+		+ \frac{1}{2}\pdv[2]{P}{x} \evalat_{x_0}^{}\delta^2 + \cdots ] 
+\end{align*}
+
+Every other term of the right hand side evidently disappears and we are 
+left with 
+\begin{equation*}
+	P(x_0,t_0) + \frac{1}{4}(p_\ell + p_r)
+	\pdv[2]{P}{x}\evalat_{x=x_0}^{}\delta^2 + \cdots 
+\end{equation*}
+
+With $ \delta $ and $ \tau $ small, we return to the equation and drop 
+terms above the second order. 
+\begin{equation*}
+	P(x_0,t_0) + \pdv{P}{t}\evalat_{t=t_0}^{} \tau + \frac{1}{2}\pdv[2]{P}{t}
+	\evalat_{t=t_0}^{} \tau^2 
+	= P(x_0, t_0) + \frac{1}{2}(p_\ell + p_r) \pdv[2]{P}{x} \evalat_{x=x_0}^{}\delta^2
+\end{equation*}
+
+With $ x_0 $ and $ t_0 $ arbitrary, we are free to drop the evaluation notation: 
+\begin{align*}
+	P(x_0,t_0) + \pdv{P}{t} \tau + \frac{1}{4}\pdv[2]{P}{t} \tau^2 
+	=& P(x_0, t_0) + \frac{1}{2}(p_\ell + p_r) \pdv[2]{P}{x} \delta^2\\
+	\pdv{P}{t} \tau + \frac{1}{2}\pdv[2]{P}{t} \tau^2 
+	=& \frac{1}{4}(p_\ell + p_r) \pdv[2]{P}{x} \delta^2
+\end{align*}
+
+where we've additionally cancelled the constant term. With $ \tau $ and $
+\delta $ being arbitrary small quantities, we are free  to set $\tau= \delta^2 $ 
+such that 
+\begin{equation*}
+	\pdv{P}{t} \delta^2 + \frac{1}{2}\pdv[2]{P}{t} \delta^4 
+	= \frac{1}{2}(p_\ell + p_r) \pdv[2]{P}{x} \delta^2
+\end{equation*}
+
+We previously argued that $ \delta^4 $ terms are too small to be considered, so 
+we find 
+\begin{equation*}
+	\pdv{P}{t} \delta^2 
+	= \frac{1}{2}(p_\ell + p_r) \pdv[2]{P}{x} \delta^2
+\end{equation*}
+
+and, dividing both sides by $ \delta^2 $, 
+\begin{equation*}
+	\boxed{
+	\pdv{P}{t} 
+	= \frac{1}{2}(p_\ell + p_r) \pdv[2]{P}{x} }
+\end{equation*}
+
+The one-dimensional heat equation!
+
+\end{document}
+

@@ -3,6 +3,7 @@ from scipy.constants import k
 from numpy import linalg
 import numpy as np 
 from math import isclose
+import json
 
 
 class World:
@@ -45,7 +46,7 @@ class World:
     def is_inside_bdy(self, r):
         return self.bdy(r) < self.bdy_pot
 
-    def params(self):
+    def string_params(self):
         bdy_name = self.bdy if self.bdy is not None else 'None'
         return f"WORLD CONDITIONS:\n" \
                 + f"temperature\t\t\t{self.temp}\n" \
@@ -53,6 +54,17 @@ class World:
                 + f"viscosity\t\t\t{self.viscosity}\n" \
                 + f"boundary\t\t\t{bdy_name}\n" \
                 + f"dt\t\t\t\t{self.dt}\n" 
+
+    def params(self): 
+        bdy_name = self.bdy if self.bdy is not None else 'None'
+        params = {
+            'temperature': self.temp,
+            'k_B': self.k_B,
+            'viscosity': self.viscosity,
+            'boundary': str(self.bdy),
+            'dt': self.dt
+        }
+        return params
 
 
 if __name__ == '__main__':

@@ -18,7 +18,7 @@ R = 20e-6
 
 
 world = World(DT, bdy=circular_bdy, bdy_pot=R)
-swimmer = SimpleSwimmer(0, world, y_0=0.5e-9, phi_0=np.pi / 3, brown=True, v_0=10e-6)
+swimmer = SimpleSwimmer(0, world, y_0=0.5e-9, phi_0=np.pi / 3, v_0=10e-6)
 
 print('computing circular boundary trajectory')
 positions = []
@@ -29,7 +29,7 @@ for i in range(0, int(DURATION / DT)):
 plot_swimmer_trajectory(positions, "plots/circular_bdy", xlim=(-R, R), ylim=(-R, R))
 
 world = World(0.01, bdy=rectangular_bdy, bdy_pot=R)
-swimmer = SimpleSwimmer(0, world, y_0=0.5e-9, phi_0=np.pi / 3, brown=True, v_0=10e-6)
+swimmer = SimpleSwimmer(0, world, y_0=0.5e-9, phi_0=np.pi / 3, v_0=10e-6)
 
 print('computing rectangular boundary trajectory')
 positions = []

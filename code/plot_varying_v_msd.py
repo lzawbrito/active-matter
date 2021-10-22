@@ -21,8 +21,8 @@ for key in files_dict:
     msds_for_v = []
     for f in file_set: 
         x, y, t = np.transpose(np.loadtxt(f + '.csv', delimiter=','))
-        params = open(f + "_params.txt", 'r')
-        param_lines = params.readlines()
+        # params = open(f + "_params.txt", 'r')  #TODO these lines necessary?
+        # param_lines = params.readlines()
         peclet = float(files_dict[key]['pe'])
         v = float(key)
 

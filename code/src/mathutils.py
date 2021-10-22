@@ -3,6 +3,9 @@ from random import random
 import autograd.numpy as np
 import autograd 
 from autograd import grad 
+from numpy.random import normal, uniform
+from threading import Thread
+import concurrent.futures 
 
 # TODO 
 """
@@ -16,6 +19,21 @@ from autograd import grad
 - figure out better way to determine whether there is an intersection?
 """
 
+def msds_for_lag(x, y, dt, delta_ts):
+    assert len(x) == len(y)
+    global msds 
+    msds = [] 
+    threads = [] 
+    with concurrent.futures.ProcessPoolExecutor(max_workers=len(delta_ts)) as executor: 
+        executor.map(lambda tdelta_t: ((tdelta_t, msd(x, y, dt, tdelta_t))), delta_ts)
+    # for delta_t in delta_ts: 
+    #     t = Thread(target=lambda tx, ty, tdt, tdelta_t: msds.append((tdelta_t, msd(tx, ty, tdt, tdelta_t))),
+    #         args=(x, y, dt, delta_t))
+    #     threads.append(t)
+    #     t.start()
+    msds = [x[1] for x in sorted(msds, key=lambda x: x[0])]
+
+    return msds
 
 def msd(x, y, dt, delta_t):
     """
@@ -23,8 +41,8 @@ def msd(x, y, dt, delta_t):
     time intervals delta_t. Because time steps are discretized, delta_t rounds 
     to nearest integer.
     """
-    interval = int(round(delta_t / dt))
     assert len(x) == len(y)
+    interval = int(round(delta_t / dt))
 
     i = 0
     sum = 0
@@ -75,6 +93,13 @@ def level_curve_intersection(r1, r2, bdy, potential, tol=1e-10, max_iter=100):
         return x 
     else:
         return None 
+
+
+def uniform_angle():
+    """
+    Draws samples from a random distribution [0, 2 * pi]
+    """
+    return uniform(low=0.0, high=2 * np.pi)
 
 
 if __name__ == '__main__':
