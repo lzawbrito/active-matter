@@ -27,15 +27,16 @@ if RUNTUMBLE_NORM:
     tau_t = params['swimmer']['tau_T']
     norm = tau_r + tau_t
 
+dt = params['world']['dt']
 
 x, y, t, dphi, state = np.transpose(np.loadtxt(data, delimiter=','))
 
-print('computing MSDs')
 filename = f"./data/sims/msd_vs_lag_data_sim={SIM_ID}.csv"
 msds = []
 if os.path.isfile(filename):
     msds = np.loadtxt(filename, delimiter=',')
 else: 
+    print('computing MSDs')
     for delta_t in t: 
         msds.append(msd(x, y, t[1] - t[0], delta_t=delta_t))
     np.savetxt(filename, np.transpose(msds), delimiter=',')
@@ -43,8 +44,14 @@ else:
 fig, ax = plt.subplots()
 
 plt.loglog(t / norm, msds)
-# plt.loglog(t / norm, REF_LINE_CONSTANT * t) # log(C t) = log(C) + log(t) => C is just intercept
-# plt.loglog(t / norm, REF_LINE_CONSTANT2 * t ** 2, label="slope 2")
+
+# Plot reference lines: 
+# Log-log plot is log(y) = k log(t) + log(a) => Y(t) = mX + log(a). We want to 
+# solve for a when X = 0. X = log(t) = 0 => t = 1. Thus we want 
+# log(a) = log(y(t = 1)) => a = y(t = 1), or, in this case, a = msd(1).
+# timestep * dt = t, so setting t = 1 we find timestep = 1 / dt.
+plt.loglog(t / norm, msds[int(1 / dt)] * t) 
+plt.loglog(t / norm, msds[int(1 / dt)] * t ** 2, label="slope 2")
 xlabel = "log(lag) (tau_r + tau_t)" if RUNTUMBLE_NORM else "log(lag) (s)"
 plt.xlabel(xlabel)
 ax.set_ylabel("log(msd)")
