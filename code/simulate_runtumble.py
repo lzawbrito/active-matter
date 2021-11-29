@@ -7,6 +7,7 @@ import json
 N_RUNS = 75
 DT = 0.02
 V = 7e-7
+OUTPUT_DIR = './data'
 
 world = World(DT)
 swimmer = RunTumbleSwimmer(0, world, t_time=0.01, r_time=1, v=V, trans_diff=False, rot_diff=False, r=5e-7)
@@ -31,22 +32,24 @@ while swimmer.get_t() <= duration:
     swimmer.step()
 
 print('Checking existing simulations...')
-file_dir = "data/sims/"
-file_name = "sim_"
-file_pre = file_dir + file_name
-file_ext = ".csv"
+dir_name = "active-matter-"
 
-sim_id = 0
-while os.path.isfile(file_pre + str(sim_id) + file_ext):
-    sim_id += 1
+id = 0
+while os.path.isdir(os.path.join(OUTPUT_DIR, dir_name + str(id))):
+    id += 1
 
-print(f"Writing to {file_pre + str(sim_id) + file_ext}...")
+sim_dir = os.path.join(OUTPUT_DIR, dir_name + str(id))
+os.mkdir(sim_dir)
+motion_data_path = os.path.join(sim_dir, 'motion_data.csv')
+print(f"Writing motion_data.csv to {sim_dir}...")
 data = np.transpose(np.append(np.transpose(positions), [t, dphi, state], axis=0))
-np.savetxt(file_pre + str(sim_id) + file_ext, data, delimiter=',', 
+np.savetxt(motion_data_path, data, delimiter=',', 
            header='x,y,t,dphi,state')
 
+print(f"Writing params.txt to {sim_dir}...")
 # Save simulation parameters in a .txt file. 
-params = open(file_pre + str(sim_id) + '_params.txt', 'w')
+params_txt_path = os.path.join(sim_dir, 'params.txt')
+params = open(params_txt_path, 'w')
 params.write(world.string_params())
 params.write('\n')
 params.write(swimmer.string_params())
@@ -54,9 +57,14 @@ params.write('\n')
 params.write(f"SIM PARAMETERS\nruns\t\t\t\t{N_RUNS}")
 params.close()
 
+print(f"Writing params.json to {sim_dir}...")
+# Save simulation params in a .json file
+params_json_path = os.path.join(sim_dir, 'params.json')
 swimmer_params_dict = swimmer.params()
 world_params_dict = world.params()
 all_params = {
+    "id": id,
+    "type": "sim",
     "world": world_params_dict, 
     "swimmer": swimmer_params_dict,
     "sim": {
@@ -64,10 +72,6 @@ all_params = {
         }
     }
 
-params_json = open(file_pre + str(sim_id) + '_params.json', 'w')
+params_json = open(params_json_path, 'w')
 params_json.write(json.dumps(all_params))
 params_json.close()
-
-print(f"""{file_name + str(sim_id) + file_ext}, {file_name + str(sim_id) +
-'_params.json'} and {file_name + str(sim_id) + '_params.txt'} written in
-{file_dir}.""")

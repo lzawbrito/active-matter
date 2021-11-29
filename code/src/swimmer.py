@@ -1,13 +1,21 @@
 import numpy as np
 from numpy.linalg import norm
-from .mathutils import level_curve_intersection, uniform_angle
+from .mathutils import level_curve_intersection, rectangle_overlap, uniform_angle, pos_angle2vertices
 from numpy.random import normal, uniform
-from abc import ABC, abstractmethod, abstractproperty
-import json 
+from abc import ABC, abstractmethod
+from scipy.misc import derivative 
+
 
 class Swimmer(ABC): 
+    @property 
+    def id(self):
+        return self._id
+
     def dphi(self):
         return self._next_phi - self._phi
+
+    def get_phi(self):
+        return self._phi
 
     def dr(self): 
         return np.subtract(self.next_position, self.position)
@@ -22,6 +30,9 @@ class Swimmer(ABC):
         self._t += self.world.dt
         self.solve()
 
+    def potential(self):
+        pass
+
     def collide(self):
         tried_r = np.array((self._next_x, self._next_y))
         current_r = np.array((self._x, self._y))
@@ -31,7 +42,8 @@ class Swimmer(ABC):
            self.world.is_inside_bdy(current_r):
             while self.world.bdy(tried_r) > self.world.bdy_pot:
                 # TODO maybe abstract this 
-                bdy_collision_position = level_curve_intersection((self._x, self._y),
+                bdy_collision_position = level_curve_intersection((self._x, 
+                                                                   self._y),
                                                                 (self._next_x, 
                                                                     self._next_y),
                                                                 self.world.bdy,
@@ -45,6 +57,7 @@ class Swimmer(ABC):
                                     * normal)
                 current_r = bdy_collision_position 
             self._next_x, self._next_y = tried_r
+
 
     @abstractmethod
     def get_state(self):
@@ -65,11 +78,11 @@ class SimpleSwimmer(Swimmer):
                  trans_dist=normal,
                  rot_dist=uniform_angle):
         """
-        Simple microswimmer object from Volpe, et al.
+        Simple microswimmer object from Volpe, et al. Assumes circular swimmer. 
         """
 
         # Unique identifier for handling purposes
-        self.id = id 
+        self._id = id 
 
         # World, see src/world
         self.world = world 
@@ -87,7 +100,6 @@ class SimpleSwimmer(Swimmer):
         self.v = v_0 
 
         # Angular orientation of particle, angular velocity 
-        # TODO add next_phi
         self._phi = phi_0
         self._next_phi = phi_0
         self.omega = omega
@@ -106,8 +118,8 @@ class SimpleSwimmer(Swimmer):
         # Peclet number 
         self.pe = self.v / (self.d_r * self.r)
 
-        # State is constanat 
-        self._state = "n/a"
+        # State is constant 
+        self._state = 'n/a'
 
         self._t = 0
         # Solve for next time step upon initialization to determine next_x, 
@@ -127,6 +139,7 @@ class SimpleSwimmer(Swimmer):
         """
         return self._x, self._y
 
+
     def get_state(self):
         return self._state
 
@@ -140,6 +153,7 @@ class SimpleSwimmer(Swimmer):
         # self._phi = self._next_phi
         # self._t += self.world.dt
         # self.solve()
+
 
     def solve(self):
         """
@@ -162,8 +176,11 @@ class SimpleSwimmer(Swimmer):
         self._next_y = y_i
         self.collide()
 
+
     def params(self):
         params = {
+            'id': self.id,
+            'type': self.__class__.__name__,
             'R': self.r,
             'v': self.v,
             'omega': self.omega,
@@ -180,6 +197,8 @@ class SimpleSwimmer(Swimmer):
 
     def string_params(self):
         return f"SWIMMER PARAMETERS:\n" \
+            + f"id\t\t\t\t{self.id}\n" \
+            + f"type\t\t\t\t{self.__class__.__name__}\n" \
             + f"R\t\t\t\t{self.r}\n" \
             + f"v\t\t\t\t{self.v}\n" \
             + f"omega\t\t\t\t{self.omega}\n" \
@@ -216,7 +235,7 @@ class RunTumbleSwimmer(Swimmer):
             raise ValueError(f"Invalid initial state: \"{init_state}\"" + 
                              " must be one of \"t\" or \"r\".")
 
-        self.id = id 
+        self._id = id 
         self.world = world 
         self.r = r 
         self.t_time = t_time  
@@ -245,7 +264,6 @@ class RunTumbleSwimmer(Swimmer):
         self.rot_dist = rot_dist
         self.pe = self.v / (self.d_r * self.r)
         self.solve()
-
 
     def runs_to_time(self, runs):
         return runs * (self.t_time + self.r_time)
@@ -301,6 +319,8 @@ class RunTumbleSwimmer(Swimmer):
 
     def params(self):
         params = {
+            'id': self.id,
+            'type': self.__class__.__name__,
             'R': self.r,
             'v': self.v,
             'tau_R': self.r_time,
@@ -319,6 +339,8 @@ class RunTumbleSwimmer(Swimmer):
 
     def string_params(self):
         return f"RUN AND TUMBLE SWIMMER PARAMETERS:\n" \
+             + f"id\t\t\t\t{self.id}\n" \
+             + f"type\t\t\t\t{self.__class__.__name__}\n" \
              + f"R\t\t\t\t{self.r}\n" \
              + f"v\t\t\t\t{self.v}\n" \
              + f"tau_R\t\t\t\t{self.r_time}\n" \
@@ -333,4 +355,210 @@ class RunTumbleSwimmer(Swimmer):
              + f"Peclet number\t\t\t{self.pe}\n" \
              + f"duration\t\t\t{self._t}\n" 
 
-       
+
+class RectangleSwimmer(Swimmer):
+    def __init__(self, 
+                 id, 
+                 world, 
+                 stiffness, # TODO determine defaults 
+                 compress, # TODO determine defaults
+                 inter_strength, # TODO determine defaults
+                 h=0.5e-6,
+                 w=0.5e-6,
+                 x_0=0, 
+                 y_0=0, 
+                 v_0=0, 
+                 phi_0=0, 
+                 omega=0, 
+                 trans_diff=True, 
+                 rot_diff=True, 
+                 trans_dist=normal, 
+                 rot_dist=uniform_angle):
+        """
+        Rectangular microswimmer.
+        """
+        # Unique identifier for handling purposes
+        self._id = str(id)
+
+        # World, see src/world
+        self.world = world 
+
+        # Geometry 
+        self.h = h 
+        self.w = w
+
+        # Positions
+        self._x = x_0
+        self._y = y_0
+        self._next_x = x_0
+        self._next_y = y_0
+
+        # Interaction parameters 
+        self.stiffness = stiffness 
+        self.compress = compress 
+        self.inter_strength = inter_strength
+
+        # Velocity 
+        self.v = v_0 
+
+        # Angular orientation of particle, angular velocity 
+        self._phi = phi_0
+        self._next_phi = phi_0
+        self.omega = omega
+
+        # Diffusion coefficients
+        # TODO 
+        self.d_t = (world.k_B * world.temp) / \
+                        (6 * world.viscosity * self.h)
+        self.d_r = (world.k_B * world.temp) / \
+                    (8 * world.viscosity * (self.h ** 3))
+
+        self.trans_diff = int(trans_diff)
+        self.rot_diff = int(rot_diff)
+        self.trans_dist = trans_dist 
+        self.rot_dist = rot_dist
+        
+        # Peclet number 
+        # TODO
+        self.pe = 1
+
+        # State is constant 
+        self._state = 'n/a'
+
+        self._t = 0
+
+        # Add swimmer to the world
+        self.world.add_swimmer(self)
+
+        # Solve for next time step upon initialization to determine next_x, 
+        # next_y
+        # self.solve()
+
+
+    def solve(self):
+        interaction_para, interaction_perp, interaction_th = self.world.get_interaction_term(self.id)
+
+        dt = self.world.dt
+        wphi_i = self.rot_dist()
+        wx_i = self.trans_dist()
+        wy_i = self.trans_dist()
+
+        zeta_para = 1 # TODO ASK HAMID WHAT TO PUT HERE
+        zeta_perp = 1 # TODO
+        zeta_th = 1 
+
+        f = self.v # CONSIDER is this correct?
+        v_para = (1 / zeta_para) * (f - interaction_para)
+        v_perp = (1 / zeta_perp) * (-1) * (interaction_perp)
+
+        v_x = v_para * np.cos(self._phi) + v_perp * np.sin(self._phi)
+        v_y = v_para * np.sin(self._phi) - v_perp * np.cos(self._phi)
+        # Add particle's chirality
+        omega = self.omega + (1 / zeta_th) * interaction_th
+
+        # Solve finite difference equations as specified by Peruani et al. 
+        diff_x = np.sqrt(2 * self.d_t * dt) * wx_i
+        diff_y = np.sqrt(2 * self.d_t * dt) * wy_i
+        phi_i = self._phi + omega * dt + self.rot_diff * np.sqrt(2 * self.d_r * dt) * wphi_i
+        x_i = self._x + v_x * dt + self.trans_diff * diff_x
+        y_i = self._y + v_y * dt + self.trans_diff * diff_y
+        
+        self._next_phi = phi_i
+        self._next_x = x_i
+        self._next_y = y_i
+        self.collide()
+
+    def get_t(self):
+        """
+        Returns current time of swimmer.
+        """
+        return self._t
+
+
+    def get_position(self):
+        """
+        Return x, y coordinates of swimmer.
+        """
+        return self._x, self._y
+
+
+    def get_state(self):
+        return self._state
+
+
+    def potential(self, other):        
+        """
+        Assumes interaction terms are linear combination of potentials
+        (spatial derivative taken inside this function.)
+
+        Returns 
+        -------
+        Parallel, perpendicular, and angular components (i.e., dU/dx_parallel, 
+        dU/dx_perp, dU/dtheta) of interaction.
+        """
+        self_x, self_y = self.get_position()
+        self_vertices = pos_angle2vertices(self_x, self_y, self._phi, self.h, self.w)
+
+        def u(x, y, phi):
+            other_vertices = pos_angle2vertices(x, y, phi, other.h, other.w)
+            return self.inter_strength * ((self.compress \
+                - rectangle_overlap(self_vertices, other_vertices)) ** (- self.stiffness) \
+                    - self.compress ** (- self.stiffness))
+            
+        other_x, other_y = other.get_position()
+        other_phi = other.get_phi()
+        other_vertices = pos_angle2vertices(other_x, other_y, other_phi, other.h, other.w)
+        if rectangle_overlap(self_vertices, other_vertices) == 0: 
+            return 0
+
+        dudx = derivative(lambda x: u(x, other_y, other_phi), other_x)
+        dudy = derivative(lambda y: u(other_x, y, other_phi), other_y)
+        dudphi = derivative(lambda phi: u(other_x, other_y, phi), other_phi)
+        forward_vec = np.array(np.cos(other_phi), np.sin(other_phi))
+        side_vec = np.array(- np.sin(other_phi), np.cos(other_phi))
+        dudx_perp = np.dot(np.array(dudx, dudy), side_vec)
+        dudx_para = np.dot(np.array(dudx, dudy), forward_vec)
+
+        return np.array([dudx_perp, dudx_para, dudphi])
+
+    def params(self):
+        params = {
+            'id': self.id,
+            'type': self.__class__.__name__,
+            'H': self.h,
+            'W': self.w,
+            'v': self.v,
+            'stiffness': self.stiffness,
+            'compress': self.compress,
+            'inter strength': self.inter_strength,
+            'omega': self.omega,
+            'trans. diffusion': bool(self.trans_diff),
+            'trans. diffusion dist.': self.trans_dist.__name__,
+            'rot. diffusion': bool(self.rot_diff),
+            'rot. diffusion dist.': self.rot_dist.__name__,
+            'D_T': self.d_t,
+            'D_R': self.d_r,
+            'Peclet number': self.pe,
+            'duration': self._t
+        }
+        return params
+
+    def string_params(self):
+        return f"SWIMMER PARAMETERS:\n" \
+            + f"id\t\t\t\t{self.id}\n" \
+            + f"type\t\t\t\t{self.__class__.__name__}\n" \
+            + f"H\t\t\t\t{self.h}\n" \
+            + f"W\t\t\t\t{self.w}\n" \
+            + f"v\t\t\t\t{self.v}\n" \
+            + f"stiffness\t\t\t{self.stiffness}\n" \
+            + f"compress\t\t\t{self.compress}\n" \
+            + f"inter strength\t\t\t{self.inter_strength}\n" \
+            + f"omega\t\t\t\t{self.omega}\n" \
+            + f"trans. diffusion\t\t{bool(self.trans_diff)}\n" \
+            + f"rot. diffusion\t\t\t{bool(self.rot_diff)}\n" \
+            + f"trans. diffusion dist.\t\t{self.trans_dist.__name__}\n" \
+            + f"rot. diffusion dist.\t\t{self.rot_dist.__name__}\n" \
+            + f"D_T\t\t\t\t{self.d_t}\n" \
+            + f"D_R\t\t\t\t{self.d_r}\n" \
+            + f"Peclet number\t\t\t{self.pe}\n" \
+            + f"duration\t\t\t{self._t}\n" 

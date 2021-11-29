@@ -8,7 +8,7 @@ import json
 
 class World:
     def __init__(self, dt, bdy=None, bdy_pot=1, temp=310, k_B=k, viscosity=1e-3):
-        """`
+        """
         World object: this is where one defines constants, 
         timestep sizes, etc.
 
@@ -22,6 +22,48 @@ class World:
         self.bdy_pot = bdy_pot
         self.k_B = k_B
         self.viscosity = viscosity
+        self.n_swimmers = 0
+        self.swimmers = {}
+        self.interaction_matrix = np.array([])
+        self._t = 0
+
+    def add_swimmer(self, swimmer):
+        index = self.n_swimmers
+        self.swimmers[swimmer.id] = {'swimmer': swimmer, 'index': index}
+        self.n_swimmers += 1
+        self.make_interaction_matrix()
+
+    def make_interaction_matrix(self):
+        self.interaction_matrix = np.zeros((self.n_swimmers, self.n_swimmers, 3))
+        self.update_interaction_matrix()
+
+    def update_interaction_matrix(self):
+        # Make copy of swimmer dictionary for safety
+        d = self.swimmers
+        for key_i in d:
+            for key_j in d: 
+                if d[key_i]['index'] == d[key_j]['index']:
+                    continue 
+                other = d[key_i]['swimmer']
+                potential_term = d[key_j]['swimmer'].potential(other) 
+                i, j = d[key_i]['index'], d[key_j]['index']
+                self.interaction_matrix[i, j] = potential_term
+
+    def get_t(self): 
+        return self._t
+
+
+    def get_interaction_term(self, id): 
+        """
+        Returns
+        -------
+        2D Array representing x and y components of the potential at that 
+        location. 
+        """
+        row = self.swimmers[id]['index']
+        return np.sum(self.interaction_matrix[row], axis=0)
+        
+
 
     def normal_vec(self, x, y=None):
         if self.bdy is None: 
@@ -65,6 +107,13 @@ class World:
             'dt': self.dt
         }
         return params
+
+    def step(self):
+        self._t += self.dt
+        for swimmer in self.swimmers.keys(): 
+            self.swimmers[swimmer]['swimmer'].step()
+
+        self.update_interaction_matrix()
 
 
 if __name__ == '__main__':

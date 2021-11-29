@@ -3,10 +3,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from os import path, mkdir
 from shutil import rmtree
-import av 
+import av
+import sys 
 
-TESTIM = 'data/videos/test.jpg'
-FRAME = './data/videos/10-22-2021/frames/frame-0000.jpg'
+
+
+TESTIM = '/videos/test.jpg'
+FRAME = './videos/10-22-2021/frames/frame-0000.jpg'
 IMAGE = FRAME 
 
 class ImageProcessor:
@@ -71,7 +74,7 @@ def get_centroid(coordinates):
     return x_mean, y_mean 
 
 
-def get_frame_centroids(file):
+def get_frame_centroids(file, end_frame=-1):
     container = av.open(file)
     centroids = []
     if path.isdir(path.join(path.dirname(file), 'frames')):
@@ -83,6 +86,7 @@ def get_frame_centroids(file):
 
     frames = container.decode(video=0)
     n_frames = container.streams.video[0].frames
+    end_frame = n_frames if end_frame == -1 else end_frame
     i = 0
     for frame in container.decode(video=0):
         im = frame.to_image()
@@ -94,26 +98,14 @@ def get_frame_centroids(file):
             'frames/extracted/frame-%04d-extracted.jpg' % frame.index))
         i += 1
 
-        # temporary, frames past 100 have artifacts
-        if i > 100:
+        if i > end_frame and end_frame > 0:
             break
-        if i % (n_frames / 10) == 0:
-            print("Processing frames: ", np.round(i / n_frames * 100, 2), '%')
+        if i % int(end_frame / 10) == 0:
+            sys.stdout.write(f"\rProcessing frames: {np.round(i / end_frame * 100, 2)}%")
         
+    sys.stdout.write("\n")
     # use framerate to obtain t 
     fr = 29.97
-    t = np.arange(0, fr * len(centroids), fr)
+    t = np.arange(0, (1 / fr) * len(centroids), (1 / fr))
     return np.append(np.transpose(centroids), [t], axis=0)
     
-
-# im = ImageProcessor(Image.open(FRAME))
-# im.save_extracted_objects('./data/test.jpg')
-
-file = './data/videos/10-22-2021/test.MOV'
-x, y, t = get_frame_centroids(file)
-zeros = np.zeros(len(x))
-
-np.savetxt(path.join(path.dirname(file), 'data.csv'),
-            np.append([x, y, t], [zeros, zeros], axis=0),
-            delimiter=',',
-            header='x,y,t,dphi,state')

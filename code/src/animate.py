@@ -1,10 +1,12 @@
-import av 
 from os import path, mkdir, listdir
 from shutil import rmtree
-import numpy as np 
 import matplotlib.pyplot as plt 
-from PIL import Image
+from matplotlib.collections import LineCollection
 import cv2
+import sys 
+import numpy as np
+from .mathutils import pos_angle2vertices
+
 
 
 def make_centroid_animation(frames, centroid_data, output_dir, filename, fps=29.97): 
@@ -23,10 +25,17 @@ def make_centroid_animation(frames, centroid_data, output_dir, filename, fps=29.
         plt.savefig(path.join(tmp_frames_dir,
             'frame-%04d-animation.jpg' % i))
         plt.clf()
-    
-    ani_images = sorted([img for img in listdir(tmp_frames_dir) if img.endswith('.jpg')])
-    # sorted in reverse for some reasom 
-    ani_images.reverse()
+        if i % int(num_ani_frames / 10) == 0:
+            sys.stdout.write(f"\rProcessing frames: {np.round(i / num_ani_frames * 100, 2)}%")
+        
+    sys.stdout.write("\n")
+    frames2vid(tmp_frames_dir, output_dir, filename, fps=fps)
+
+
+def frames2vid(tmp_frames_dir, output_dir, filename, file_ext='.jpg', fps=29.97):
+    ani_images = sorted([img for img in listdir(tmp_frames_dir) if img.endswith(file_ext)])
+    # sorted in reverse for some reason
+    # ani_images.reverse()
 
     # https://stackoverflow.com/questions/44947505/how-to-make-a-movie-out-of-images-in-python?answertab=oldest#tab-top
     ani_frame = cv2.imread(path.join(tmp_frames_dir, ani_images[0]))
@@ -42,10 +51,36 @@ def make_centroid_animation(frames, centroid_data, output_dir, filename, fps=29.
     rmtree(tmp_frames_dir)
 
 
+def make_swimmer_animation(swimmer_data, len, output_dir, filename, fps=29.97):
+    """
+    
+    Params
+    ------
+    in format ([s1_positions, s1_phis, s1_h, s1_w], ...)
+    """
+    tmp_frames_dir = path.join(output_dir, f"{path.splitext(filename)[0]}-tmp-frames")
+    if path.isdir(tmp_frames_dir):
+        rmtree(tmp_frames_dir)
+    mkdir(tmp_frames_dir)
+    ax = plt.axes()
+    
+    
+    for i in range(0, len):  # TODO poor iteration do something smarter later
+        ax.set_aspect('equal')
+        ax.set_ylim(-10, 10)
+        ax.set_xlim(-10, 10)
+        lcs = []
+        for s in swimmer_data.keys():
+            x, y = swimmer_data[s]['pos'][i]
+            phi = swimmer_data[s]['phi'][i]
+            verts = pos_angle2vertices(x, y, phi, swimmer_data[s]['h'], swimmer_data[s]['w'])
+            verts.append(verts[0])
+            verts = np.array(verts)
+            lcs.append(LineCollection([np.column_stack(np.transpose(verts))]))
 
-input_dir = './data/videos/10-22-2021/frames/extracted/'
-ims = sorted([path.join(input_dir, img) for img in listdir(input_dir) if img.endswith('.jpg')])
-ims = [Image.open(img) for img in ims]
-x, y, t, dphi, state = np.loadtxt('./data/videos/10-22-2021/data.csv', delimiter=',')
+        for l in lcs: 
+            ax.add_collection(l)
 
-make_centroid_animation(ims, np.transpose([x, y]), './animations/exp/', 'test_ani.avi')
+        plt.savefig(path.join(tmp_frames_dir, 'frame-%04d-animation.jpg' % i))
+        ax.cla()
+    frames2vid(tmp_frames_dir, output_dir, filename, fps=fps)
