@@ -111,9 +111,13 @@ class World:
     def step(self):
         self._t += self.dt
         for swimmer in self.swimmers.keys(): 
+            self.swimmers[swimmer]['swimmer'].solve() 
+            
+        self.update_interaction_matrix()
+
+        for swimmer in self.swimmers.keys(): 
             self.swimmers[swimmer]['swimmer'].step()
 
-        self.update_interaction_matrix()
 
 
 if __name__ == '__main__':

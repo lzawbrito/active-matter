@@ -13,7 +13,7 @@ def make_centroid_animation(frames, centroid_data, output_dir, filename, fps=29.
     # Pick shortest array to avoid index error
     num_ani_frames = len(frames) if len(frames) < len(centroid_data) else len(centroid_data) 
 
-    tmp_frames_dir = path.join(output_dir, f"{path.splitext(filename)[0]}-tmp-frames")
+    tmp_frames_dir = path.join(output_dir, f"{path.litext(filename)[0]}-tmp-frames")
     if path.isdir(tmp_frames_dir):
         rmtree(tmp_frames_dir)
     mkdir(tmp_frames_dir)
@@ -51,7 +51,7 @@ def frames2vid(tmp_frames_dir, output_dir, filename, file_ext='.jpg', fps=29.97)
     rmtree(tmp_frames_dir)
 
 
-def make_swimmer_animation(swimmer_data, len, output_dir, filename, fps=29.97):
+def make_swimmer_animation(swimmer_data, t, output_dir, filename, fps=29.97, dpi=150, xlim=(-10, 10), ylim=(-10, 10)):
     """
     
     Params
@@ -65,10 +65,10 @@ def make_swimmer_animation(swimmer_data, len, output_dir, filename, fps=29.97):
     ax = plt.axes()
     
     
-    for i in range(0, len):  # TODO poor iteration do something smarter later
+    for i in range(0, len(t)): 
         ax.set_aspect('equal')
-        ax.set_ylim(-10, 10)
-        ax.set_xlim(-10, 10)
+        ax.set_ylim(*xlim)
+        ax.set_xlim(*ylim)
         lcs = []
         for s in swimmer_data.keys():
             x, y = swimmer_data[s]['pos'][i]
@@ -80,7 +80,7 @@ def make_swimmer_animation(swimmer_data, len, output_dir, filename, fps=29.97):
 
         for l in lcs: 
             ax.add_collection(l)
-
-        plt.savefig(path.join(tmp_frames_dir, 'frame-%04d-animation.jpg' % i))
+        ax.text(0.05, 0.05, "t=" + str(round(t[i], 3)), horizontalalignment='left', verticalalignment='bottom', transform=ax.transAxes)
+        plt.savefig(path.join(tmp_frames_dir, 'frame-%04d-animation.jpg' % i), dpi=dpi)
         ax.cla()
     frames2vid(tmp_frames_dir, output_dir, filename, fps=fps)

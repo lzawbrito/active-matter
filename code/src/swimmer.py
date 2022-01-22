@@ -28,10 +28,9 @@ class Swimmer(ABC):
         self._y = self._next_y
         self._phi = self._next_phi
         self._t += self.world.dt
-        self.solve()
 
     def potential(self):
-        pass
+        return np.array([0, 0, 0])
 
     def collide(self):
         tried_r = np.array((self._next_x, self._next_y))
@@ -373,7 +372,8 @@ class RectangleSwimmer(Swimmer):
                  trans_diff=True, 
                  rot_diff=True, 
                  trans_dist=normal, 
-                 rot_dist=uniform_angle):
+                 rot_dist=uniform_angle,
+                 debug=False):
         """
         Rectangular microswimmer.
         """
@@ -426,7 +426,7 @@ class RectangleSwimmer(Swimmer):
         self._state = 'n/a'
 
         self._t = 0
-
+        self.debug = debug
         # Add swimmer to the world
         self.world.add_swimmer(self)
 
@@ -436,8 +436,11 @@ class RectangleSwimmer(Swimmer):
 
 
     def solve(self):
-        interaction_para, interaction_perp, interaction_th = self.world.get_interaction_term(self.id)
-
+        interaction_perp, interaction_para, interaction_th = self.world \
+                                                    .get_interaction_term(self.id)
+        if self.debug: 
+            print(interaction_th)
+    
         dt = self.world.dt
         wphi_i = self.rot_dist()
         wx_i = self.trans_dist()
@@ -448,7 +451,7 @@ class RectangleSwimmer(Swimmer):
         zeta_th = 1 
 
         f = self.v # CONSIDER is this correct?
-        v_para = (1 / zeta_para) * (f - interaction_para)
+        v_para = (1 / zeta_para) * (f + interaction_para)
         v_perp = (1 / zeta_perp) * (-1) * (interaction_perp)
 
         v_x = v_para * np.cos(self._phi) + v_perp * np.sin(self._phi)
@@ -497,20 +500,24 @@ class RectangleSwimmer(Swimmer):
         dU/dx_perp, dU/dtheta) of interaction.
         """
         self_x, self_y = self.get_position()
-        self_vertices = pos_angle2vertices(self_x, self_y, self._phi, self.h, self.w)
+        self_vertices = pos_angle2vertices(self_x, self_y, self._phi, 
+                                           self.h, self.w)
 
         def u(x, y, phi):
             other_vertices = pos_angle2vertices(x, y, phi, other.h, other.w)
             return self.inter_strength * ((self.compress \
-                - rectangle_overlap(self_vertices, other_vertices)) ** (- self.stiffness) \
-                    - self.compress ** (- self.stiffness))
+                - rectangle_overlap(self_vertices, other_vertices)) ** \
+                    (- self.stiffness) - self.compress ** (- self.stiffness))
             
         other_x, other_y = other.get_position()
         other_phi = other.get_phi()
-        other_vertices = pos_angle2vertices(other_x, other_y, other_phi, other.h, other.w)
-        if rectangle_overlap(self_vertices, other_vertices) == 0: 
-            return 0
 
+        other_vertices = pos_angle2vertices(other_x, other_y, other_phi,
+                                            other.h, other.w)
+
+        if rectangle_overlap(self_vertices, other_vertices) == 0: 
+            return np.array([0, 0, 0])
+        
         dudx = derivative(lambda x: u(x, other_y, other_phi), other_x)
         dudy = derivative(lambda y: u(other_x, y, other_phi), other_y)
         dudphi = derivative(lambda phi: u(other_x, other_y, phi), other_phi)
@@ -520,6 +527,7 @@ class RectangleSwimmer(Swimmer):
         dudx_para = np.dot(np.array(dudx, dudy), forward_vec)
 
         return np.array([dudx_perp, dudx_para, dudphi])
+
 
     def params(self):
         params = {
